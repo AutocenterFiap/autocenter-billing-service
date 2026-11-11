@@ -1,6 +1,7 @@
 package br.com.autocenterfiap.billing.adapter.in.consumer;
 
 import br.com.autocenterfiap.billing.application.port.out.EventoProcessadoPort;
+import br.com.autocenterfiap.billing.application.usecase.GerarCobrancaUseCase;
 import br.com.autocenterfiap.billing.application.usecase.GerarOrcamentoUseCase;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -12,7 +13,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -24,6 +24,9 @@ class BillingComandosConsumerTest {
 	private GerarOrcamentoUseCase gerarOrcamentoUseCase;
 
 	@Mock
+	private GerarCobrancaUseCase gerarCobrancaUseCase;
+
+	@Mock
 	private EventoProcessadoPort eventoProcessado;
 
 	private BillingComandosConsumer consumer;
@@ -31,7 +34,11 @@ class BillingComandosConsumerTest {
 	@BeforeEach
 	void setUp() {
 		ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
-		consumer = new BillingComandosConsumer(gerarOrcamentoUseCase, eventoProcessado, mapper);
+		consumer = new BillingComandosConsumer(
+				gerarOrcamentoUseCase,
+				gerarCobrancaUseCase,
+				eventoProcessado,
+				mapper);
 	}
 
 	@Test
@@ -61,6 +68,33 @@ class BillingComandosConsumerTest {
 
 		verify(gerarOrcamentoUseCase).executar(10L, 42L, new BigDecimal("165.00"), "corr-10");
 		verify(eventoProcessado).marcarProcessado("evt-04");
+	}
+
+	@Test
+	void deveProcessarComandoGerarCobrancaEMarcarProcessado() throws Exception {
+		String json = """
+				{
+				  "eventId": "evt-07",
+				  "tipo": "billing.gerar-cobranca",
+				  "versao": 1,
+				  "osId": 10,
+				  "correlationId": "corr-10",
+				  "ocorridoEm": "2026-01-01T00:00:00Z",
+				  "payload": {
+				    "orcamentoId": 50,
+				    "valorTotal": "165.00",
+				    "tentativa": 1,
+				    "validadeMinutos": 30
+				  }
+				}
+				""";
+
+		when(eventoProcessado.jaProcessado("evt-07")).thenReturn(false);
+
+		consumer.onMensagem(json);
+
+		verify(gerarCobrancaUseCase).executar(10L, 50L, new BigDecimal("165.00"), 1, 30, "corr-10");
+		verify(eventoProcessado).marcarProcessado("evt-07");
 	}
 
 	@Test
@@ -109,4 +143,3 @@ class BillingComandosConsumerTest {
 		consumer.tratarDlt(jsonDesconhecido);
 	}
 }
-

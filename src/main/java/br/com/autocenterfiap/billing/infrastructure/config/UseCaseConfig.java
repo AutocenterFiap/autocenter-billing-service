@@ -1,12 +1,17 @@
 package br.com.autocenterfiap.billing.infrastructure.config;
 
 import br.com.autocenterfiap.billing.application.port.out.BillingEventPublisherPort;
+import br.com.autocenterfiap.billing.application.port.out.MercadoPagoPort;
 import br.com.autocenterfiap.billing.application.port.out.OrcamentoRepositoryPort;
+import br.com.autocenterfiap.billing.application.port.out.PagamentoRepositoryPort;
 import br.com.autocenterfiap.billing.application.usecase.AprovarOrcamentoUseCase;
 import br.com.autocenterfiap.billing.application.usecase.BuscarOrcamentoPorIdUseCase;
+import br.com.autocenterfiap.billing.application.usecase.BuscarPagamentoUseCase;
 import br.com.autocenterfiap.billing.application.usecase.BuscarTodosOrcamentosUseCase;
 import br.com.autocenterfiap.billing.application.usecase.CriarOrcamentoUseCase;
+import br.com.autocenterfiap.billing.application.usecase.GerarCobrancaUseCase;
 import br.com.autocenterfiap.billing.application.usecase.GerarOrcamentoUseCase;
+import br.com.autocenterfiap.billing.application.usecase.ProcessarPagamentoUseCase;
 import br.com.autocenterfiap.billing.application.usecase.ReprovarOrcamentoUseCase;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -54,5 +59,25 @@ public class UseCaseConfig {
 			BillingEventPublisherPort publisher) {
 		return new ReprovarOrcamentoUseCase(orcamentoRepositoryPort, publisher);
 	}
-}
 
+	@Bean
+	public GerarCobrancaUseCase gerarCobrancaUseCase(
+			PagamentoRepositoryPort pagamentoRepositoryPort,
+			MercadoPagoPort mercadoPagoPort,
+			BillingEventPublisherPort publisher) {
+		return new GerarCobrancaUseCase(pagamentoRepositoryPort, mercadoPagoPort, publisher);
+	}
+
+	@Bean
+	public ProcessarPagamentoUseCase processarPagamentoUseCase(
+			PagamentoRepositoryPort pagamentoRepositoryPort,
+			MercadoPagoPort mercadoPagoPort,
+			BillingEventPublisherPort publisher) {
+		return new ProcessarPagamentoUseCase(pagamentoRepositoryPort, mercadoPagoPort, publisher);
+	}
+
+	@Bean
+	public BuscarPagamentoUseCase buscarPagamentoUseCase(PagamentoRepositoryPort pagamentoRepositoryPort) {
+		return new BuscarPagamentoUseCase(pagamentoRepositoryPort);
+	}
+}

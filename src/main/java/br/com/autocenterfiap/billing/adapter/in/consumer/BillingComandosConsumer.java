@@ -4,6 +4,7 @@ import br.com.autocenterfiap.billing.adapter.messaging.contract.BillingPayloads;
 import br.com.autocenterfiap.billing.adapter.messaging.contract.EventoEnvelope;
 import br.com.autocenterfiap.billing.adapter.messaging.contract.TipoEvento;
 import br.com.autocenterfiap.billing.application.port.out.EventoProcessadoPort;
+import br.com.autocenterfiap.billing.application.usecase.GerarCobrancaUseCase;
 import br.com.autocenterfiap.billing.application.usecase.GerarOrcamentoUseCase;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -30,13 +31,17 @@ public class BillingComandosConsumer {
 	private static final Logger log = LoggerFactory.getLogger(BillingComandosConsumer.class);
 
 	private final GerarOrcamentoUseCase gerarOrcamentoUseCase;
+	private final GerarCobrancaUseCase gerarCobrancaUseCase;
 	private final EventoProcessadoPort eventoProcessado;
 	private final ObjectMapper objectMapper;
 
-	public BillingComandosConsumer(GerarOrcamentoUseCase gerarOrcamentoUseCase,
-	                               EventoProcessadoPort eventoProcessado,
-	                               ObjectMapper objectMapper) {
+	public BillingComandosConsumer(
+			GerarOrcamentoUseCase gerarOrcamentoUseCase,
+			GerarCobrancaUseCase gerarCobrancaUseCase,
+			EventoProcessadoPort eventoProcessado,
+			ObjectMapper objectMapper) {
 		this.gerarOrcamentoUseCase = gerarOrcamentoUseCase;
+		this.gerarCobrancaUseCase = gerarCobrancaUseCase;
 		this.eventoProcessado = eventoProcessado;
 		this.objectMapper = objectMapper;
 	}
@@ -72,7 +77,7 @@ public class BillingComandosConsumer {
 		if (TipoEvento.BILLING_GERAR_ORCAMENTO.equals(envelope.tipo())) {
 			BillingPayloads.GerarOrcamento p =
 					objectMapper.treeToValue(envelope.payload(), BillingPayloads.GerarOrcamento.class);
-			BigDecimal valorTotal = extrairValorTotal(p);
+			BigDecimal valorTotal = extrairValorTotalOrcamento(p);
 			gerarOrcamentoUseCase.executar(
 					envelope.osId(),
 					p != null ? p.clienteId() : null,
@@ -80,23 +85,33 @@ public class BillingComandosConsumer {
 					envelope.correlationId());
 			return true;
 		}
+		if (TipoEvento.BILLING_GERAR_COBRANCA.equals(envelope.tipo())) {
+			BillingPayloads.GerarCobranca p =
+					objectMapper.treeToValue(envelope.payload(), BillingPayloads.GerarCobranca.class);
+			BigDecimal valorTotal = parseDecimalSeguro(p != null ? p.valorTotal() : null);
+			gerarCobrancaUseCase.executar(
+					envelope.osId(),
+					p != null ? p.orcamentoId() : null,
+					valorTotal,
+					p != null ? p.tentativa() : null,
+					p != null ? p.validadeMinutos() : null,
+					envelope.correlationId());
+			return true;
+		}
 		log.debug("Tipo {} nao tratado por billing.comandos; ignorando", envelope.tipo());
 		return false;
 	}
 
-	private BigDecimal extrairValorTotal(BillingPayloads.GerarOrcamento payload) {
+	private BigDecimal extrairValorTotalOrcamento(BillingPayloads.GerarOrcamento payload) {
 		if (payload == null) {
 			return null;
 		}
 		if (payload.itens() != null && payload.itens().vazio()) {
 			return BigDecimal.ZERO;
 		}
-		if (payload.valorTotal() != null && !payload.valorTotal().isBlank()) {
-			try {
-				return new BigDecimal(payload.valorTotal());
-			} catch (NumberFormatException ex) {
-				return null;
-			}
+		BigDecimal informado = parseDecimalSeguro(payload.valorTotal());
+		if (informado != null) {
+			return informado;
 		}
 		if (payload.itens() != null) {
 			return payload.itens().calcularTotal();
@@ -104,9 +119,19 @@ public class BillingComandosConsumer {
 		return null;
 	}
 
+	private BigDecimal parseDecimalSeguro(String valor) {
+		if (valor == null || valor.isBlank()) {
+			return null;
+		}
+		try {
+			return new BigDecimal(valor.trim());
+		} catch (NumberFormatException ex) {
+			return null;
+		}
+	}
+
 	@DltHandler
 	public void tratarDlt(String mensagem) {
 		log.error("Mensagem de billing.comandos enviada para a DLT: {}", mensagem);
 	}
 }
-

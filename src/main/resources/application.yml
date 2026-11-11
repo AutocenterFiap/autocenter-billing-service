@@ -1,6 +1,8 @@
 spring:
   application:
     name: autocenter-billing-service
+  config:
+    import: optional:file:.env[.properties]
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3307/billing?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true}
     username: ${SPRING_DATASOURCE_USERNAME:billing}
@@ -42,10 +44,15 @@ billing:
       # publicado
       billing-eventos: billing.eventos
   mercadopago:
-    modo: ${MERCADOPAGO_MODO:stub}
+    modo: ${MERCADOPAGO_MODO:real}
     base-url: ${MERCADOPAGO_BASE_URL:https://api.mercadopago.com}
+    public-key: ${MERCADOPAGO_PUBLIC_KEY:}
     access-token: ${MERCADOPAGO_ACCESS_TOKEN:}
-    notification-url: ${MERCADOPAGO_NOTIFICATION_URL:http://localhost:8099/v1/pagamentos/webhook/mercadopago}
+    notification-url: ${MERCADOPAGO_NOTIFICATION_URL:}
+    ngrok-api-url: ${NGROK_API_URL:http://localhost:4040/api/tunnels}
+    back-url-success: ${MERCADOPAGO_BACK_URL_SUCCESS:https://httpbin.org/get?back_url=success}
+    back-url-failure: ${MERCADOPAGO_BACK_URL_FAILURE:https://httpbin.org/get?back_url=failure}
+    back-url-pending: ${MERCADOPAGO_BACK_URL_PENDING:https://httpbin.org/get?back_url=pending}
 
 # ========================================
 # Swagger / OpenAPI
@@ -81,10 +88,10 @@ spring:
   config:
     activate:
       on-profile: dev
+    import: optional:file:.env[.properties]
 
 ---
 spring:
   config:
     activate:
       on-profile: prod
-

@@ -1,6 +1,7 @@
 package br.com.autocenterfiap.billing.adapter.in.handler;
 
 import br.com.autocenterfiap.billing.application.exception.OrcamentoNaoEncontradoException;
+import br.com.autocenterfiap.billing.application.exception.PagamentoNaoEncontradoException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -10,8 +11,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-	@ExceptionHandler(OrcamentoNaoEncontradoException.class)
-	public ResponseEntity<ErroResponse> naoEncontrado(OrcamentoNaoEncontradoException ex) {
+	@ExceptionHandler({OrcamentoNaoEncontradoException.class, PagamentoNaoEncontradoException.class})
+	public ResponseEntity<ErroResponse> naoEncontrado(RuntimeException ex) {
 		return build(HttpStatus.NOT_FOUND, ex.getMessage());
 	}
 
@@ -34,4 +35,3 @@ public class GlobalExceptionHandler {
 				.body(ErroResponse.de(status.value(), status.getReasonPhrase(), mensagem));
 	}
 }
-

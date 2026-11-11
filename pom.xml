@@ -82,6 +82,13 @@
 			<artifactId>spring-kafka</artifactId>
 		</dependency>
 
+		<!-- Mercado Pago SDK Oficial (Checkout Pro) -->
+		<dependency>
+			<groupId>com.mercadopago</groupId>
+			<artifactId>sdk-java</artifactId>
+			<version>2.1.21</version>
+		</dependency>
+
 		<!-- Documentacao (Swagger / OpenAPI) -->
 		<dependency>
 			<groupId>org.springdoc</groupId>
