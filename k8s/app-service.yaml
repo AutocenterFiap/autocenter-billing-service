@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: autocenter-billing-service
+  namespace: auto-center-billing
+  labels:
+    app: autocenter-billing-service
+    component: api
+spec:
+  # NodePort expoe no host via <IP-do-no>:30099 (use LoadBalancer na cloud)
+  type: NodePort
+  selector:
+    app: autocenter-billing-service
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8099
+      nodePort: 30099
+      protocol: TCP
+

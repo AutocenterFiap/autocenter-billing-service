@@ -1,0 +1,117 @@
+name: CD — Billing (Orçamento e Pagamento)
+
+# Build/push da imagem (GHCR) e deploy automatizado no Kubernetes.
+# Dispara apenas em push na main.
+#
+# GitHub Secrets necessários para o deploy:
+#   KUBE_CONFIG                — kubeconfig (base64 ou texto) do cluster alvo
+#   MYSQL_ROOT_PASSWORD        — senha root do MySQL
+#   MYSQL_USER                 — usuário da aplicação no MySQL
+#   MYSQL_PASSWORD             — senha da aplicação no MySQL
+#   SPRING_DATASOURCE_URL      — URL JDBC completa do MySQL
+#   MERCADOPAGO_ACCESS_TOKEN   — token do Mercado Pago Checkout Pro
+#   MERCADOPAGO_PUBLIC_KEY     — public key do Mercado Pago
+# Se KUBE_CONFIG não estiver configurado, o job de deploy é pulado (sem falhar).
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  K8S_NAMESPACE: auto-center-billing
+
+jobs:
+  docker-build-push:
+    name: 🐳 Build e Push da Imagem (GHCR)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Definir nome da imagem (lowercase) e tag
+        id: meta
+        run: |
+          REPO_LC=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "image=ghcr.io/${REPO_LC}" >> "${GITHUB_OUTPUT}"
+
+      - name: Login no GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build e push da imagem Docker
+        run: |
+          IMAGE="${{ steps.meta.outputs.image }}"
+          docker build -f docker/Dockerfile \
+            -t "${IMAGE}:latest" \
+            -t "${IMAGE}:${{ github.sha }}" \
+            .
+          docker push "${IMAGE}:latest"
+          docker push "${IMAGE}:${{ github.sha }}"
+
+  deploy:
+    name: 🚀 Deploy no Kubernetes
+    runs-on: ubuntu-latest
+    needs: docker-build-push
+    env:
+      KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Aviso se kubeconfig ausente
+        if: ${{ env.KUBE_CONFIG == '' }}
+        run: echo "ℹ️  Secret KUBE_CONFIG não configurado — pulando o deploy no cluster."
+
+      - name: Configurar kubeconfig
+        if: ${{ env.KUBE_CONFIG != '' }}
+        run: |
+          mkdir -p "${HOME}/.kube"
+          if echo "${KUBE_CONFIG}" | base64 -d >/dev/null 2>&1; then
+            echo "${KUBE_CONFIG}" | base64 -d > "${HOME}/.kube/config"
+          else
+            echo "${KUBE_CONFIG}" > "${HOME}/.kube/config"
+          fi
+          chmod 600 "${HOME}/.kube/config"
+          kubectl config current-context
+
+      - name: Namespace e ConfigMap
+        if: ${{ env.KUBE_CONFIG != '' }}
+        run: |
+          kubectl apply -f k8s/namespace.yaml
+          kubectl apply -f k8s/configmap.yaml
+
+      - name: Criar/atualizar Secret do serviço
+        if: ${{ env.KUBE_CONFIG != '' }}
+        run: |
+          kubectl create secret generic billing-secrets \
+            --namespace="${K8S_NAMESPACE}" \
+            --from-literal=MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}" \
+            --from-literal=MYSQL_USER="${{ secrets.MYSQL_USER }}" \
+            --from-literal=MYSQL_PASSWORD="${{ secrets.MYSQL_PASSWORD }}" \
+            --from-literal=SPRING_DATASOURCE_URL="${{ secrets.SPRING_DATASOURCE_URL }}" \
+            --from-literal=SPRING_DATASOURCE_USERNAME="${{ secrets.MYSQL_USER }}" \
+            --from-literal=SPRING_DATASOURCE_PASSWORD="${{ secrets.MYSQL_PASSWORD }}" \
+            --from-literal=MERCADOPAGO_ACCESS_TOKEN="${{ secrets.MERCADOPAGO_ACCESS_TOKEN }}" \
+            --from-literal=MERCADOPAGO_PUBLIC_KEY="${{ secrets.MERCADOPAGO_PUBLIC_KEY }}" \
+            --save-config --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Aplicar manifestos (Kustomize)
+        if: ${{ env.KUBE_CONFIG != '' }}
+        run: |
+          IMAGE="${{ needs.docker-build-push.outputs.image }}:${{ github.sha }}"
+          sed -i "s|image: autocenter-billing-service:latest|image: ${IMAGE}|g" k8s/app-deployment.yaml
+          kubectl apply -k k8s/
+          kubectl rollout status deployment/autocenter-billing-service \
+            --namespace="${K8S_NAMESPACE}" --timeout=180s
+
