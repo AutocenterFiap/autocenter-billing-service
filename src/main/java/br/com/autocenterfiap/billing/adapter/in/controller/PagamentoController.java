@@ -6,6 +6,7 @@ import br.com.autocenterfiap.billing.adapter.in.dto.PagamentoResponse;
 import br.com.autocenterfiap.billing.adapter.in.dto.RecusarPagamentoRequest;
 import br.com.autocenterfiap.billing.application.dto.PagamentoOutput;
 import br.com.autocenterfiap.billing.application.usecase.BuscarPagamentoUseCase;
+import br.com.autocenterfiap.billing.application.usecase.EstornarPagamentoUseCase;
 import br.com.autocenterfiap.billing.application.usecase.GerarCobrancaUseCase;
 import br.com.autocenterfiap.billing.application.usecase.ProcessarPagamentoUseCase;
 import io.swagger.v3.oas.annotations.Operation;
@@ -37,14 +38,17 @@ public class PagamentoController {
 	private final GerarCobrancaUseCase gerarCobrancaUseCase;
 	private final BuscarPagamentoUseCase buscarPagamentoUseCase;
 	private final ProcessarPagamentoUseCase processarPagamentoUseCase;
+	private final EstornarPagamentoUseCase estornarPagamentoUseCase;
 
 	public PagamentoController(
 			GerarCobrancaUseCase gerarCobrancaUseCase,
 			BuscarPagamentoUseCase buscarPagamentoUseCase,
-			ProcessarPagamentoUseCase processarPagamentoUseCase) {
+			ProcessarPagamentoUseCase processarPagamentoUseCase,
+			EstornarPagamentoUseCase estornarPagamentoUseCase) {
 		this.gerarCobrancaUseCase = gerarCobrancaUseCase;
 		this.buscarPagamentoUseCase = buscarPagamentoUseCase;
 		this.processarPagamentoUseCase = processarPagamentoUseCase;
+		this.estornarPagamentoUseCase = estornarPagamentoUseCase;
 	}
 
 	@PostMapping
@@ -122,6 +126,18 @@ public class PagamentoController {
 		String motivo = request != null ? request.motivo() : null;
 		String mpPaymentId = request != null ? request.mpPaymentId() : null;
 		PagamentoOutput output = processarPagamentoUseCase.recusar(id, mpPaymentId, motivo);
+		return ResponseEntity.ok(PagamentoResponse.de(output));
+	}
+
+	@PostMapping("/{id}/estornar")
+	@Operation(summary = "Solicita ou reprocessa o estorno do pagamento no Mercado Pago e publica na Saga")
+	public ResponseEntity<PagamentoResponse> estornar(
+			@PathVariable Long id,
+			@RequestParam(name = "motivo", required = false) String motivo) {
+		PagamentoOutput output = estornarPagamentoUseCase.executar(null, id, motivo, null);
+		if (output == null) {
+			return ResponseEntity.notFound().build();
+		}
 		return ResponseEntity.ok(PagamentoResponse.de(output));
 	}
 

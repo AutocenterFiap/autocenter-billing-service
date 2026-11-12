@@ -108,6 +108,18 @@ class PagamentoUseCasesTest {
 		// Idempotente na recusa manual
 		useCase.recusar(91L, "888", "Motivo");
 
+		// Pagamento ja cancelado que recebe confirmacao tardia estorna automaticamente
+		Pagamento cancelado = Pagamento.novoPendente(12L, 52L, "corr-12", new BigDecimal("50.00"), 1, Instant.now());
+		cancelado.setId(92L);
+		cancelado.cancelar("OS cancelada");
+		when(pagamentoRepository.buscarPorId(92L)).thenReturn(Optional.of(cancelado));
+		when(mercadoPagoPort.estornarPagamento(92L, "999", new BigDecimal("50.00")))
+				.thenReturn(new MercadoPagoPort.ResultadoEstorno(true, "ref-92", null));
+
+		PagamentoOutput estornoTardio = useCase.confirmar(92L, "999");
+		assertThat(estornoTardio.statusPagamento()).isEqualTo(StatusPagamento.ESTORNADO);
+		verify(publisher).pagamentoEstornado(12L, "corr-12", 92L);
+
 		assertThat(useCase.processarNotificacaoWebhook("")).isEmpty();
 	}
 

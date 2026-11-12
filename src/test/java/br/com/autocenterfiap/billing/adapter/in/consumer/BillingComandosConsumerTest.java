@@ -1,6 +1,7 @@
 package br.com.autocenterfiap.billing.adapter.in.consumer;
 
 import br.com.autocenterfiap.billing.application.port.out.EventoProcessadoPort;
+import br.com.autocenterfiap.billing.application.usecase.EstornarPagamentoUseCase;
 import br.com.autocenterfiap.billing.application.usecase.GerarCobrancaUseCase;
 import br.com.autocenterfiap.billing.application.usecase.GerarOrcamentoUseCase;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -27,6 +28,9 @@ class BillingComandosConsumerTest {
 	private GerarCobrancaUseCase gerarCobrancaUseCase;
 
 	@Mock
+	private EstornarPagamentoUseCase estornarPagamentoUseCase;
+
+	@Mock
 	private EventoProcessadoPort eventoProcessado;
 
 	private BillingComandosConsumer consumer;
@@ -37,6 +41,7 @@ class BillingComandosConsumerTest {
 		consumer = new BillingComandosConsumer(
 				gerarOrcamentoUseCase,
 				gerarCobrancaUseCase,
+				estornarPagamentoUseCase,
 				eventoProcessado,
 				mapper);
 	}
@@ -95,6 +100,31 @@ class BillingComandosConsumerTest {
 
 		verify(gerarCobrancaUseCase).executar(10L, 50L, new BigDecimal("165.00"), 1, 30, "corr-10");
 		verify(eventoProcessado).marcarProcessado("evt-07");
+	}
+
+	@Test
+	void deveProcessarComandoEstornarPagamentoEMarcarProcessado() throws Exception {
+		String json = """
+				{
+				  "eventId": "evt-19",
+				  "tipo": "billing.estornar-pagamento",
+				  "versao": 1,
+				  "osId": 10,
+				  "correlationId": "corr-10",
+				  "ocorridoEm": "2026-01-01T00:00:00Z",
+				  "payload": {
+				    "pagamentoId": 90,
+				    "motivo": "Execucao falhou"
+				  }
+				}
+				""";
+
+		when(eventoProcessado.jaProcessado("evt-19")).thenReturn(false);
+
+		consumer.onMensagem(json);
+
+		verify(estornarPagamentoUseCase).executar(10L, 90L, "Execucao falhou", "corr-10");
+		verify(eventoProcessado).marcarProcessado("evt-19");
 	}
 
 	@Test

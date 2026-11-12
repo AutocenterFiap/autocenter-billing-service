@@ -8,7 +8,9 @@ import br.com.autocenterfiap.billing.application.usecase.AprovarOrcamentoUseCase
 import br.com.autocenterfiap.billing.application.usecase.BuscarOrcamentoPorIdUseCase;
 import br.com.autocenterfiap.billing.application.usecase.BuscarPagamentoUseCase;
 import br.com.autocenterfiap.billing.application.usecase.BuscarTodosOrcamentosUseCase;
+import br.com.autocenterfiap.billing.application.usecase.CancelarBillingPorOsUseCase;
 import br.com.autocenterfiap.billing.application.usecase.CriarOrcamentoUseCase;
+import br.com.autocenterfiap.billing.application.usecase.EstornarPagamentoUseCase;
 import br.com.autocenterfiap.billing.application.usecase.GerarCobrancaUseCase;
 import br.com.autocenterfiap.billing.application.usecase.GerarOrcamentoUseCase;
 import br.com.autocenterfiap.billing.application.usecase.ProcessarPagamentoUseCase;
@@ -79,5 +81,21 @@ public class UseCaseConfig {
 	@Bean
 	public BuscarPagamentoUseCase buscarPagamentoUseCase(PagamentoRepositoryPort pagamentoRepositoryPort) {
 		return new BuscarPagamentoUseCase(pagamentoRepositoryPort);
+	}
+
+	@Bean
+	public EstornarPagamentoUseCase estornarPagamentoUseCase(
+			PagamentoRepositoryPort pagamentoRepositoryPort,
+			MercadoPagoPort mercadoPagoPort,
+			BillingEventPublisherPort publisher) {
+		return new EstornarPagamentoUseCase(pagamentoRepositoryPort, mercadoPagoPort, publisher);
+	}
+
+	@Bean
+	public CancelarBillingPorOsUseCase cancelarBillingPorOsUseCase(
+			OrcamentoRepositoryPort orcamentoRepositoryPort,
+			PagamentoRepositoryPort pagamentoRepositoryPort,
+			MercadoPagoPort mercadoPagoPort) {
+		return new CancelarBillingPorOsUseCase(orcamentoRepositoryPort, pagamentoRepositoryPort, mercadoPagoPort);
 	}
 }

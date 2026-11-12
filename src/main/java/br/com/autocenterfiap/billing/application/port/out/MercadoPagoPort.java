@@ -21,6 +21,9 @@ public interface MercadoPagoPort {
 
 	ResultadoEstorno estornarPagamento(Long pagamentoId, String mpPaymentId, BigDecimal valor);
 
+	default void expirarPreferencia(String preferenceId) {
+	}
+
 	record PreferenciaGerada(String preferenceId, String urlCheckout) {
 	}
 

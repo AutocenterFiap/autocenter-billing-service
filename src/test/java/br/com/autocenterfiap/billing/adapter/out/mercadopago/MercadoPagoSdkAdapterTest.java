@@ -155,6 +155,10 @@ class MercadoPagoSdkAdapterTest {
 				adapter.estornarPagamento(91L, "888", new BigDecimal("165.00"));
 		assertThat(falhaEstorno.sucesso()).isFalse();
 		assertThat(falhaEstorno.motivoErro()).contains("Operadora recusou o estorno");
+
+		// Expiracao de preferencia no Checkout Pro
+		adapter.expirarPreferencia("pref-real-90");
+		verify(preferenceClient).update(eq("pref-real-90"), any(PreferenceRequest.class));
 	}
 }
 

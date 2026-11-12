@@ -204,6 +204,26 @@ public class MercadoPagoSdkAdapter implements MercadoPagoPort {
 		}
 	}
 
+	@Override
+	public void expirarPreferencia(String preferenceId) {
+		if (!properties.ehModoReal() || preferenceId == null || preferenceId.isBlank()) {
+			return;
+		}
+		try {
+			MercadoPagoConfig.setAccessToken(properties.accessToken());
+			OffsetDateTime passado = OffsetDateTime.now(ZoneOffset.UTC).minusMinutes(1);
+			PreferenceRequest request = PreferenceRequest.builder()
+					.expires(true)
+					.expirationDateFrom(passado.minusHours(1))
+					.expirationDateTo(passado)
+					.build();
+			preferenceClient.update(preferenceId, request);
+			log.info("Preferencia Checkout Pro expirada no Mercado Pago: prefId={}", preferenceId);
+		} catch (Exception ex) {
+			log.warn("Nao foi possivel expirar preferencia {} no Mercado Pago: {}", preferenceId, ex.getMessage());
+		}
+	}
+
 	String resolverNotificationUrl() {
 		if (properties.notificationUrl() != null && !properties.notificationUrl().isBlank()) {
 			return properties.notificationUrl().trim();

@@ -6,6 +6,7 @@ import br.com.autocenterfiap.billing.application.port.out.BillingEventPublisherP
 import br.com.autocenterfiap.billing.application.port.out.MercadoPagoPort;
 import br.com.autocenterfiap.billing.application.port.out.PagamentoRepositoryPort;
 import br.com.autocenterfiap.billing.domain.entity.Pagamento;
+import br.com.autocenterfiap.billing.domain.enums.StatusPagamento;
 
 import java.util.Optional;
 
@@ -76,6 +77,21 @@ public class ProcessarPagamentoUseCase {
 
 	private PagamentoOutput confirmarInterno(Pagamento pagamento, String mpPaymentId) {
 		if (pagamento.estaConfirmado()) {
+			return PagamentoOutput.de(pagamento);
+		}
+		if (pagamento.getStatusPagamento() == StatusPagamento.CANCELADO) {
+			if (mpPaymentId != null && !mpPaymentId.isBlank()) {
+				pagamento.setMpPaymentId(mpPaymentId);
+				MercadoPagoPort.ResultadoEstorno estorno = mercadoPagoPort.estornarPagamento(
+						pagamento.getId(), mpPaymentId, pagamento.getValor());
+				if (estorno.sucesso()) {
+					pagamento.estornar("Pagamento recebido apos cancelamento da OS");
+					Pagamento salvo = pagamentoRepository.salvar(pagamento);
+					publisher.pagamentoEstornado(
+							salvo.getOrdemServicoId(), salvo.getCorrelationId(), salvo.getId());
+					return PagamentoOutput.de(salvo);
+				}
+			}
 			return PagamentoOutput.de(pagamento);
 		}
 		pagamento.confirmar(mpPaymentId);

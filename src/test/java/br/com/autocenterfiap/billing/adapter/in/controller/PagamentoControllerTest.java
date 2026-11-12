@@ -6,6 +6,7 @@ import br.com.autocenterfiap.billing.adapter.in.dto.PagamentoResponse;
 import br.com.autocenterfiap.billing.adapter.in.dto.RecusarPagamentoRequest;
 import br.com.autocenterfiap.billing.application.dto.PagamentoOutput;
 import br.com.autocenterfiap.billing.application.usecase.BuscarPagamentoUseCase;
+import br.com.autocenterfiap.billing.application.usecase.EstornarPagamentoUseCase;
 import br.com.autocenterfiap.billing.application.usecase.GerarCobrancaUseCase;
 import br.com.autocenterfiap.billing.application.usecase.ProcessarPagamentoUseCase;
 import br.com.autocenterfiap.billing.domain.enums.StatusPagamento;
@@ -41,6 +42,9 @@ class PagamentoControllerTest {
 	@Mock
 	private ProcessarPagamentoUseCase processarPagamentoUseCase;
 
+	@Mock
+	private EstornarPagamentoUseCase estornarPagamentoUseCase;
+
 	private PagamentoController controller;
 
 	@BeforeEach
@@ -48,7 +52,8 @@ class PagamentoControllerTest {
 		controller = new PagamentoController(
 				gerarCobrancaUseCase,
 				buscarPagamentoUseCase,
-				processarPagamentoUseCase);
+				processarPagamentoUseCase,
+				estornarPagamentoUseCase);
 	}
 
 	private PagamentoOutput exemplo(StatusPagamento status) {
@@ -114,5 +119,10 @@ class PagamentoControllerTest {
 				90L, new RecusarPagamentoRequest("Cartao recusado", "888"));
 		assertThat(recusado.getBody().statusPagamento()).isEqualTo(StatusPagamento.RECUSADO);
 		verify(processarPagamentoUseCase).recusar(90L, "888", "Cartao recusado");
+
+		when(estornarPagamentoUseCase.executar(null, 90L, "OS cancelada", null))
+				.thenReturn(exemplo(StatusPagamento.ESTORNADO));
+		ResponseEntity<PagamentoResponse> estornado = controller.estornar(90L, "OS cancelada");
+		assertThat(estornado.getBody().statusPagamento()).isEqualTo(StatusPagamento.ESTORNADO);
 	}
 }

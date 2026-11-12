@@ -4,6 +4,7 @@ import br.com.autocenterfiap.billing.adapter.messaging.contract.BillingPayloads;
 import br.com.autocenterfiap.billing.adapter.messaging.contract.EventoEnvelope;
 import br.com.autocenterfiap.billing.adapter.messaging.contract.TipoEvento;
 import br.com.autocenterfiap.billing.application.port.out.EventoProcessadoPort;
+import br.com.autocenterfiap.billing.application.usecase.EstornarPagamentoUseCase;
 import br.com.autocenterfiap.billing.application.usecase.GerarCobrancaUseCase;
 import br.com.autocenterfiap.billing.application.usecase.GerarOrcamentoUseCase;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -32,16 +33,19 @@ public class BillingComandosConsumer {
 
 	private final GerarOrcamentoUseCase gerarOrcamentoUseCase;
 	private final GerarCobrancaUseCase gerarCobrancaUseCase;
+	private final EstornarPagamentoUseCase estornarPagamentoUseCase;
 	private final EventoProcessadoPort eventoProcessado;
 	private final ObjectMapper objectMapper;
 
 	public BillingComandosConsumer(
 			GerarOrcamentoUseCase gerarOrcamentoUseCase,
 			GerarCobrancaUseCase gerarCobrancaUseCase,
+			EstornarPagamentoUseCase estornarPagamentoUseCase,
 			EventoProcessadoPort eventoProcessado,
 			ObjectMapper objectMapper) {
 		this.gerarOrcamentoUseCase = gerarOrcamentoUseCase;
 		this.gerarCobrancaUseCase = gerarCobrancaUseCase;
+		this.estornarPagamentoUseCase = estornarPagamentoUseCase;
 		this.eventoProcessado = eventoProcessado;
 		this.objectMapper = objectMapper;
 	}
@@ -95,6 +99,16 @@ public class BillingComandosConsumer {
 					valorTotal,
 					p != null ? p.tentativa() : null,
 					p != null ? p.validadeMinutos() : null,
+					envelope.correlationId());
+			return true;
+		}
+		if (TipoEvento.BILLING_ESTORNAR_PAGAMENTO.equals(envelope.tipo())) {
+			BillingPayloads.EstornarPagamento p =
+					objectMapper.treeToValue(envelope.payload(), BillingPayloads.EstornarPagamento.class);
+			estornarPagamentoUseCase.executar(
+					envelope.osId(),
+					p != null ? p.pagamentoId() : null,
+					p != null ? p.motivo() : null,
 					envelope.correlationId());
 			return true;
 		}
