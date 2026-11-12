@@ -1,5 +1,6 @@
 package br.com.autocenterfiap.billing.adapter.messaging.contract;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.time.Instant;
@@ -20,6 +21,7 @@ public record EventoEnvelope<T>(
 		Integer versao,
 		Long osId,
 		String correlationId,
+		@JsonFormat(shape = JsonFormat.Shape.STRING)
 		Instant ocorridoEm,
 		T payload) {
 

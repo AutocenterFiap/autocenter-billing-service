@@ -1,5 +1,6 @@
 package br.com.autocenterfiap.billing.adapter.messaging.contract;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.math.BigDecimal;
@@ -56,7 +57,12 @@ public final class BillingPayloads {
 	}
 
 	/** 08 - pagamento.link-gerado */
-	public record PagamentoLinkGerado(Long pagamentoId, String url, Integer tentativa, Instant expiraEm) {
+	public record PagamentoLinkGerado(
+			Long pagamentoId,
+			String url,
+			Integer tentativa,
+			@JsonFormat(shape = JsonFormat.Shape.STRING)
+			Instant expiraEm) {
 	}
 
 	/** 09 - pagamento.confirmado */
