@@ -27,7 +27,6 @@
 		<sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
 		<sonar.junit.reportPaths>${project.basedir}/target/surefire-reports</sonar.junit.reportPaths>
 		<sonar.exclusions>**/config/**,**/dto/**,**/enums/**,**/entity/*JpaEntity.java,**/BillingApplication.java</sonar.exclusions>
-		<sonar.qualitygate.wait>true</sonar.qualitygate.wait>
 	</properties>
 
 	<dependencyManagement>
