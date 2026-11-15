@@ -107,6 +107,7 @@ class CompensacaoUseCasesTest {
 		PagamentoOutput outIdempotente = useCase.executar(10L, 92L, "Repete", "corr-10");
 		assertThat(outIdempotente.statusPagamento()).isEqualTo(StatusPagamento.ESTORNADO);
 		verify(mercadoPagoPort, never()).estornarPagamento(any(), any(), any());
+		verify(publisher).pagamentoEstornado(10L, "corr-10", 92L);
 
 		PagamentoOutput outPendente = useCase.executar(11L, null, "Cancelar", "corr-11");
 		assertThat(outPendente.statusPagamento()).isEqualTo(StatusPagamento.PENDENTE);

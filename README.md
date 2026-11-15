@@ -16,7 +16,7 @@ O ecossistema adota o padrão **Saga Orquestrada**, onde o **`autocenter-os-serv
   - Centralizar a máquina de estados da OS no `os-service` evita acoplamento ponto-a-ponto entre `billing` e `execucao` (os dois nunca se comunicam diretamente).
 - **Resiliência e Idempotência**:
   - **Deduplicação por `eventId`**: tabela `eventos_processados` garante processamento idempotente mesmo com reentrega do Kafka.
-  - **Retry + DLT**: consumers anotados com `@RetryableTopic` (backoff exponencial e envio para Dead Letter Topic em caso de falha persistente).
+  - **Retry + DLT**: erro técnico tem 3 retentativas bloqueantes (1 s, 2 s, 4 s), que preservam a ordem das mensagens de cada OS, e depois a mensagem vai para `<tópico>.dlt` (mesma partição: `billing.comandos.dlt` e `os.eventos.dlt`). JSON inválido vai direto para a DLT.
   - **Compensação Segura**:
     - `billing.estornar-pagamento` aciona o estorno real via `PaymentRefundClient` (com `X-Idempotency-Key`) e publica `pagamento.estornado` ou `pagamento.estorno-falhou`.
     - `os.cancelada` cancela orçamentos/pagamentos ativos, expira a preferência no Mercado Pago quando pendente e realiza estorno automático caso um pagamento tardio chegue para uma OS já cancelada.
@@ -56,6 +56,8 @@ Todos os eventos usam `osId` como chave de partição e o envelope padrão (`Eve
 ## 3. Endpoints REST
 
 Documentação interativa disponível em **`/swagger-ui.html`** (`/api-docs`).
+
+**Autenticação:** as rotas `/v1/**` exigem `Authorization: Bearer <jwt>` (HS256, issuer `Auto Center Fiap`, com `exp`), o mesmo token do OS Service e do monolito. O segredo vem de `SISTEMA_SEGURANCA_CHAVE_SECRETA`, sem valor padrão. Ficam públicos o webhook do Mercado Pago, o Swagger e o actuator.
 
 ### Orçamentos (`/v1/orcamentos`)
 - `GET /v1/orcamentos` — Lista paginada de orçamentos
@@ -149,5 +151,6 @@ mvn clean verify
 - **Kubernetes**: manifestos em [`k8s/`](k8s/README.md) (Namespace `auto-center-billing`, MySQL StatefulSet, Deployment com probes/Datadog, Service NodePort `30099`, HPA e Kustomize).
 - **CI/CD**:
   - [`.github/workflows/ci.yml`](.github/workflows/ci.yml): build, testes unitários + BDD (Testcontainers), gate JaCoCo ≥ 80% e análise SonarQube.
-  - [`.github/workflows/cd.yml`](.github/workflows/cd.yml): build/push da imagem no GHCR e deploy via `kubectl apply -k k8s/`.
+  - [`.github/workflows/cd.yml`](.github/workflows/cd.yml): build/push da imagem no GHCR e deploy no cluster kind (`kind-autocenter`) pelo runner self-hosted: build local, `kind load`, Secret a partir dos GitHub Secrets e `kubectl apply -k` com a imagem do commit.
+  - No cluster, o Kafka compartilhado fica no namespace `autocenter` (`kafka.autocenter.svc.cluster.local:9092`).
 

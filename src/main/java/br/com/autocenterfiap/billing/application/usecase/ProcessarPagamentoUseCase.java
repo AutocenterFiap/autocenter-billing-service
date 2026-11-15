@@ -76,16 +76,19 @@ public class ProcessarPagamentoUseCase {
 	}
 
 	private PagamentoOutput confirmarInterno(Pagamento pagamento, String mpPaymentId) {
-		if (pagamento.estaConfirmado()) {
+		StatusPagamento status = pagamento.getStatusPagamento();
+		if (status == StatusPagamento.CONFIRMADO
+				|| status == StatusPagamento.ESTORNADO
+				|| status == StatusPagamento.ESTORNO_FALHOU) {
 			return PagamentoOutput.de(pagamento);
 		}
-		if (pagamento.getStatusPagamento() == StatusPagamento.CANCELADO) {
+		if (status == StatusPagamento.CANCELADO || status == StatusPagamento.RECUSADO) {
 			if (mpPaymentId != null && !mpPaymentId.isBlank()) {
 				pagamento.setMpPaymentId(mpPaymentId);
 				MercadoPagoPort.ResultadoEstorno estorno = mercadoPagoPort.estornarPagamento(
 						pagamento.getId(), mpPaymentId, pagamento.getValor());
 				if (estorno.sucesso()) {
-					pagamento.estornar("Pagamento recebido apos cancelamento da OS");
+					pagamento.estornar("Pagamento recebido para cobranca encerrada");
 					Pagamento salvo = pagamentoRepository.salvar(pagamento);
 					publisher.pagamentoEstornado(
 							salvo.getOrdemServicoId(), salvo.getCorrelationId(), salvo.getId());
@@ -105,7 +108,7 @@ public class ProcessarPagamentoUseCase {
 	}
 
 	private PagamentoOutput recusarInterno(Pagamento pagamento, String mpPaymentId, String motivo) {
-		if (pagamento.estaRecusado()) {
+		if (pagamento.getStatusPagamento() != StatusPagamento.PENDENTE) {
 			return PagamentoOutput.de(pagamento);
 		}
 		pagamento.recusar(mpPaymentId, motivo);

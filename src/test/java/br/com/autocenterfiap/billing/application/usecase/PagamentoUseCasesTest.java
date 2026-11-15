@@ -14,6 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -63,6 +64,71 @@ class PagamentoUseCasesTest {
 				eq("https://www.mercadopago.com.br/checkout/v1/redirect?pref_id=pref-90"),
 				eq(1),
 				any(Instant.class));
+	}
+
+	@Test
+	void deveInvalidarCobrancaAnteriorAntesDeGerarNova() {
+		Pagamento pendenteAnterior = Pagamento.novoPendente(
+				10L, 50L, "corr-10", new BigDecimal("165.00"), 1, Instant.now());
+		pendenteAnterior.setId(80L);
+		pendenteAnterior.registrarLinkCheckout("pref-80", "https://mp/80");
+		Pagamento recusadoAnterior = Pagamento.novoPendente(
+				10L, 50L, "corr-10", new BigDecimal("165.00"), 1, Instant.now());
+		recusadoAnterior.setId(81L);
+		recusadoAnterior.registrarLinkCheckout("pref-81", "https://mp/81");
+		recusadoAnterior.recusar("mp-81", "Cartao recusado");
+		Pagamento confirmadoAnterior = Pagamento.novoPendente(
+				10L, 50L, "corr-10", new BigDecimal("165.00"), 1, Instant.now());
+		confirmadoAnterior.setId(82L);
+		confirmadoAnterior.registrarLinkCheckout("pref-82", "https://mp/82");
+		confirmadoAnterior.confirmar("mp-82");
+
+		when(pagamentoRepository.buscarTodosPorOrdemServicoId(10L))
+				.thenReturn(List.of(pendenteAnterior, recusadoAnterior, confirmadoAnterior));
+		when(pagamentoRepository.salvar(any())).thenAnswer(inv -> {
+			Pagamento p = inv.getArgument(0);
+			if (p.getId() == null) {
+				p.setId(90L);
+			}
+			return p;
+		});
+		when(mercadoPagoPort.criarPreferenciaCheckoutPro(eq(90L), eq(10L), eq(50L), any(), eq(2), any()))
+				.thenReturn(new MercadoPagoPort.PreferenciaGerada("pref-90", "https://mp/90"));
+
+		new GerarCobrancaUseCase(pagamentoRepository, mercadoPagoPort, publisher)
+				.executar(10L, 50L, new BigDecimal("165.00"), 2, 30, "corr-10");
+
+		assertThat(pendenteAnterior.getStatusPagamento()).isEqualTo(StatusPagamento.CANCELADO);
+		assertThat(recusadoAnterior.getStatusPagamento()).isEqualTo(StatusPagamento.RECUSADO);
+		verify(mercadoPagoPort).expirarPreferencia("pref-80");
+		verify(mercadoPagoPort).expirarPreferencia("pref-81");
+		verify(mercadoPagoPort, never()).expirarPreferencia("pref-82");
+	}
+
+	@Test
+	void deveEstornarConfirmacaoDeCobrancaRecusadaEIgnorarRecusaDeCobrancaConfirmada() {
+		Pagamento recusado = Pagamento.novoPendente(10L, 50L, "corr-10", new BigDecimal("165.00"), 1, Instant.now());
+		recusado.setId(95L);
+		recusado.recusar("mp-95", "Cartao recusado");
+		Pagamento confirmado = Pagamento.novoPendente(10L, 50L, "corr-10", new BigDecimal("165.00"), 2, Instant.now());
+		confirmado.setId(96L);
+		confirmado.confirmar("mp-96");
+
+		when(pagamentoRepository.buscarPorId(95L)).thenReturn(Optional.of(recusado));
+		when(pagamentoRepository.buscarPorId(96L)).thenReturn(Optional.of(confirmado));
+		when(pagamentoRepository.salvar(any())).thenAnswer(inv -> inv.getArgument(0));
+		when(mercadoPagoPort.estornarPagamento(95L, "mp-95b", new BigDecimal("165.00")))
+				.thenReturn(new MercadoPagoPort.ResultadoEstorno(true, "ref-95", null));
+
+		ProcessarPagamentoUseCase useCase = new ProcessarPagamentoUseCase(
+				pagamentoRepository, mercadoPagoPort, publisher);
+
+		assertThat(useCase.confirmar(95L, "mp-95b").statusPagamento()).isEqualTo(StatusPagamento.ESTORNADO);
+		verify(publisher).pagamentoEstornado(10L, "corr-10", 95L);
+		verify(publisher, never()).pagamentoConfirmado(any(), any(), eq(95L), any());
+
+		assertThat(useCase.recusar(96L, "mp-96", "Atrasado").statusPagamento()).isEqualTo(StatusPagamento.CONFIRMADO);
+		verify(publisher, never()).pagamentoRecusado(any(), any(), eq(96L), any(), any());
 	}
 
 	@Test

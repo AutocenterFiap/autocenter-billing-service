@@ -47,6 +47,7 @@ public class EstornarPagamentoUseCase {
 				: pagamento.getCorrelationId();
 
 		if (pagamento.getStatusPagamento() == StatusPagamento.ESTORNADO) {
+			publisher.pagamentoEstornado(osIdEfetivo, correlationEfetivo, pagamento.getId());
 			return PagamentoOutput.de(pagamento);
 		}
 

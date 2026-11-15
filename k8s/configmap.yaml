@@ -11,7 +11,7 @@ data:
   SERVER_PORT: "8099"
 
   # ─── Kafka (cluster de mensageria compartilhado do ecossistema) ──
-  KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+  KAFKA_BOOTSTRAP_SERVERS: "kafka.autocenter.svc.cluster.local:9092"
 
   # ─── Mercado Pago (Checkout Pro) ─────────────────────────────────
   MERCADOPAGO_MODO: "real"

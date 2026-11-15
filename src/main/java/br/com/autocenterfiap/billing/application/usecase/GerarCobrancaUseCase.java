@@ -5,6 +5,7 @@ import br.com.autocenterfiap.billing.application.port.out.BillingEventPublisherP
 import br.com.autocenterfiap.billing.application.port.out.MercadoPagoPort;
 import br.com.autocenterfiap.billing.application.port.out.PagamentoRepositoryPort;
 import br.com.autocenterfiap.billing.domain.entity.Pagamento;
+import br.com.autocenterfiap.billing.domain.enums.StatusPagamento;
 
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -47,6 +48,8 @@ public class GerarCobrancaUseCase {
 				.plus(Duration.ofMinutes(minutos))
 				.truncatedTo(ChronoUnit.SECONDS);
 
+		invalidarCobrancasAnteriores(osId);
+
 		Pagamento pendente = Pagamento.novoPendente(
 				osId,
 				orcamentoId,
@@ -76,6 +79,23 @@ public class GerarCobrancaUseCase {
 				atualizado.getExpiraEm());
 
 		return PagamentoOutput.de(atualizado);
+	}
+
+	private void invalidarCobrancasAnteriores(Long osId) {
+		if (osId == null) {
+			return;
+		}
+		for (Pagamento anterior : pagamentoRepository.buscarTodosPorOrdemServicoId(osId)) {
+			StatusPagamento status = anterior.getStatusPagamento();
+			if (status == StatusPagamento.PENDENTE) {
+				anterior.cancelar("Substituido por nova cobranca");
+				pagamentoRepository.salvar(anterior);
+			}
+			boolean linkAtivo = status == StatusPagamento.PENDENTE || status == StatusPagamento.RECUSADO;
+			if (linkAtivo && anterior.getMpPreferenceId() != null && !anterior.getMpPreferenceId().isBlank()) {
+				mercadoPagoPort.expirarPreferencia(anterior.getMpPreferenceId());
+			}
+		}
 	}
 }
 

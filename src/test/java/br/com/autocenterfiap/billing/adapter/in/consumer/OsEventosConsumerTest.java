@@ -69,8 +69,6 @@ class OsEventosConsumerTest {
 		when(eventoProcessado.jaProcessado("evt-01")).thenReturn(false);
 		consumer.onMensagem(outro);
 		verify(eventoProcessado, never()).marcarProcessado("evt-01");
-
-		consumer.tratarDlt(outro);
 	}
 }
 

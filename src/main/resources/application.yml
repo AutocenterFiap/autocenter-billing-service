@@ -3,6 +3,9 @@ spring:
     name: autocenter-billing-service
   config:
     import: optional:file:.env[.properties]
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3307/billing?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true}
     username: ${SPRING_DATASOURCE_USERNAME:billing}
@@ -31,6 +34,11 @@ spring:
 
 server:
   port: ${SERVER_PORT:8099}
+
+sistema:
+  seguranca:
+    chave:
+      secreta: ${SISTEMA_SEGURANCA_CHAVE_SECRETA}
 
 # ========================================
 # Topicos Kafka do ecossistema (contrato da Saga)

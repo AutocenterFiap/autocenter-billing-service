@@ -169,7 +169,5 @@ class BillingComandosConsumerTest {
 		when(eventoProcessado.jaProcessado("evt-x")).thenReturn(false);
 		consumer.onMensagem(jsonDesconhecido);
 		verify(eventoProcessado, never()).marcarProcessado("evt-x");
-
-		consumer.tratarDlt(jsonDesconhecido);
 	}
 }

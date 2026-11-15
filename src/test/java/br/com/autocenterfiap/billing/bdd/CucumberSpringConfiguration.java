@@ -42,6 +42,7 @@ public class CucumberSpringConfiguration {
 		registry.add("billing.mercadopago.modo", () -> "simulado");
 		registry.add("billing.mercadopago.access-token", () -> "");
 		registry.add("billing.mercadopago.notification-url", () -> "");
+		registry.add("sistema.seguranca.chave.secreta", () -> TokensTeste.SEGREDO);
 	}
 }
 

@@ -48,6 +48,7 @@ public class BillingSteps {
 		return RestClient.builder()
 				.baseUrl("http://localhost:" + port)
 				.requestFactory(new JdkClientHttpRequestFactory())
+				.defaultHeader("Authorization", "Bearer " + TokensTeste.interno())
 				.build();
 	}
 

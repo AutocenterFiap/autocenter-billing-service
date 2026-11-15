@@ -101,6 +101,11 @@ spec:
                 secretKeyRef:
                   name: billing-secrets
                   key: MERCADOPAGO_PUBLIC_KEY
+            - name: SISTEMA_SEGURANCA_CHAVE_SECRETA
+              valueFrom:
+                secretKeyRef:
+                  name: billing-secrets
+                  key: SISTEMA_SEGURANCA_CHAVE_SECRETA
           envFrom:
             - configMapRef:
                 name: billing-configmap

@@ -11,11 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
-import org.springframework.kafka.annotation.DltHandler;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.annotation.RetryableTopic;
-import org.springframework.kafka.retrytopic.DltStrategy;
-import org.springframework.retry.annotation.Backoff;
 import org.springframework.stereotype.Component;
 
 /**
@@ -40,11 +36,6 @@ public class OsEventosConsumer {
 		this.objectMapper = objectMapper;
 	}
 
-	@RetryableTopic(
-			attempts = "4",
-			backoff = @Backoff(delay = 2000, multiplier = 2.0),
-			dltStrategy = DltStrategy.FAIL_ON_ERROR,
-			autoCreateTopics = "true")
 	@KafkaListener(topics = "${billing.kafka.topics.os-eventos}",
 			groupId = "${spring.kafka.consumer.group-id}")
 	public void onMensagem(String mensagem) throws Exception {
@@ -71,11 +62,6 @@ public class OsEventosConsumer {
 		} finally {
 			MDC.remove("correlationId");
 		}
-	}
-
-	@DltHandler
-	public void tratarDlt(String mensagem) {
-		log.error("Mensagem de os.eventos enviada para a DLT: {}", mensagem);
 	}
 }
 
