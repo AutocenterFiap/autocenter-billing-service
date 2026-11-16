@@ -8,6 +8,7 @@ import br.com.autocenterfiap.billing.domain.entity.Pagamento;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Component
@@ -26,7 +27,7 @@ public class PagamentoRepositoryJpaAdapter implements PagamentoRepositoryPort {
 	@Override
 	public Pagamento salvar(Pagamento pagamento) {
 		PagamentoJpaEntity salvo = repository.save(mapper.paraJpa(pagamento));
-		return mapper.paraDominio(salvo);
+		return Objects.requireNonNull(mapper.paraDominio(salvo), "Pagamento salvo nao pode ser nulo");
 	}
 
 	@Override

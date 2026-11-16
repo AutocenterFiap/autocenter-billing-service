@@ -195,11 +195,11 @@ public class MercadoPagoSdkAdapter implements MercadoPagoPort {
 					? String.valueOf(refund.getId())
 					: "refund-" + pagamentoId;
 			log.info("Estorno realizado no Mercado Pago: pagamentoId={} mpPaymentId={} refundId={}",
-					pagamentoId, mpPaymentId, refundId);
+					pagamentoId, paraLog(mpPaymentId), refundId);
 			return new ResultadoEstorno(true, refundId, null);
 		} catch (Exception ex) {
 			log.error("Falha ao estornar pagamento {} (mpPaymentId={}) no Mercado Pago: {}",
-					pagamentoId, mpPaymentId, ex.getMessage(), ex);
+					pagamentoId, paraLog(mpPaymentId), ex.getMessage(), ex);
 			return new ResultadoEstorno(false, null, "Operadora recusou o estorno: " + ex.getMessage());
 		}
 	}
@@ -261,11 +261,18 @@ public class MercadoPagoSdkAdapter implements MercadoPagoPort {
 					}
 				}
 			}
+		} catch (InterruptedException ex) {
+			Thread.currentThread().interrupt();
+			log.debug("Deteccao do ngrok interrompida em {}", properties.ngrokApiUrl());
 		} catch (Exception ex) {
 			log.debug("Ngrok local nao detectado em {} (prosseguindo sem notification_url automatica): {}",
 					properties.ngrokApiUrl(), ex.getMessage());
 		}
 		return null;
+	}
+
+	private static String paraLog(String valor) {
+		return valor == null ? null : valor.replaceAll("[\n\r]", "_");
 	}
 
 	private String normalizarUrlWebhook(String baseUrl) {

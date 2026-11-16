@@ -91,7 +91,7 @@ public class PagamentoController {
 		String tipo = resolverTipoNotificacao(queryType, queryTopic, body);
 		String mpPaymentId = resolverMpPaymentId(queryDataId, queryId, body);
 
-		log.info("Webhook Mercado Pago recebido: tipo={} mpPaymentId={}", tipo, mpPaymentId);
+		log.info("Webhook Mercado Pago recebido: tipo={} mpPaymentId={}", paraLog(tipo), paraLog(mpPaymentId));
 
 		if (mpPaymentId == null || mpPaymentId.isBlank()
 				|| (tipo != null && !tipo.isBlank() && !"payment".equalsIgnoreCase(tipo))) {
@@ -139,6 +139,10 @@ public class PagamentoController {
 			return ResponseEntity.notFound().build();
 		}
 		return ResponseEntity.ok(PagamentoResponse.de(output));
+	}
+
+	private static String paraLog(String valor) {
+		return valor == null ? null : valor.replaceAll("[\n\r]", "_");
 	}
 
 	private String resolverTipoNotificacao(String queryType, String queryTopic, MercadoPagoWebhookRequest body) {

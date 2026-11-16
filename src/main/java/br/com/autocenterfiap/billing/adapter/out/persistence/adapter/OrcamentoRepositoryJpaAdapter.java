@@ -15,6 +15,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Component
@@ -64,7 +65,7 @@ public class OrcamentoRepositoryJpaAdapter implements OrcamentoRepositoryPort {
 	public Orcamento salvar(Orcamento orcamento) {
 		OrcamentoJpaEntity orcamentoJpaEntity = OrcamentoJpaMapper.toJpa(orcamento);
 		OrcamentoJpaEntity salvo = this.orcamentoJpaRepository.save(orcamentoJpaEntity);
-		return OrcamentoJpaMapper.toDomain(salvo);
+		return Objects.requireNonNull(OrcamentoJpaMapper.toDomain(salvo), "Orcamento salvo nao pode ser nulo");
 	}
 }
 
