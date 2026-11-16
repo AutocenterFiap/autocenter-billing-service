@@ -150,7 +150,13 @@ mvn clean verify
 - **Docker**: [`docker/Dockerfile`](docker/Dockerfile) (multi-stage Maven + JRE 21 + `dd-java-agent.jar`).
 - **Kubernetes**: manifestos em [`k8s/`](k8s/README.md) (Namespace `auto-center-billing`, MySQL StatefulSet, Deployment com probes/Datadog, Service NodePort `30099`, HPA e Kustomize).
 - **CI/CD**:
-  - [`.github/workflows/ci.yml`](.github/workflows/ci.yml): build, testes unitários + BDD (Testcontainers), gate JaCoCo ≥ 80% e análise SonarQube.
-  - [`.github/workflows/cd.yml`](.github/workflows/cd.yml): build/push da imagem no GHCR e deploy no cluster kind (`kind-autocenter`) pelo runner self-hosted: build local, `kind load`, Secret a partir dos GitHub Secrets e `kubectl apply -k` com a imagem do commit.
+  - [`.github/workflows/ci.yml`](.github/workflows/ci.yml): build, testes unitários + BDD (Testcontainers), gate JaCoCo ≥ 80%, análise SonarCloud e, em push na `main` ou na `homologacao`, o job `deploy`. O deploy só roda depois do build e do Quality Gate, no runner self-hosted, com [`scripts/deploy-kind.sh`](scripts/deploy-kind.sh): build local, `kind load`, Secret a partir dos GitHub Secrets e `kubectl apply -k` com a imagem do commit.
+  - [`.github/workflows/cd.yml`](.github/workflows/cd.yml): publica a imagem no GHCR a cada push na `main`.
+  - Ambientes (os secrets do environment têm prioridade sobre os do repositório):
+
+    | Branch | Cluster kind | GitHub Environment |
+    |---|---|---|
+    | `main` | `autocenter` (`kind-autocenter`) | `producao` |
+    | `homologacao` | `autocenter-qa` (`kind-autocenter-qa`) | `homologacao` |
   - No cluster, o Kafka compartilhado fica no namespace `autocenter` (`kafka.autocenter.svc.cluster.local:9092`).
 

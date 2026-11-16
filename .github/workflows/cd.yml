@@ -1,25 +1,12 @@
 name: CD — Billing (Orçamento e Pagamento)
 
-# Build/push da imagem (GHCR) e deploy automatizado no Kubernetes.
-# Dispara apenas em push na main.
-#
-# GitHub Secrets necessários para o deploy:
-#   SISTEMA_SEGURANCA_CHAVE_SECRETA — segredo HS256 do JWT (o mesmo do OS Service e do monolito)
-#   MYSQL_ROOT_PASSWORD        — senha root do MySQL
-#   MYSQL_USER                 — usuário da aplicação no MySQL
-#   MYSQL_PASSWORD             — senha da aplicação no MySQL
-#   SPRING_DATASOURCE_URL      — URL JDBC completa do MySQL
-#   MERCADOPAGO_ACCESS_TOKEN   — token do Mercado Pago Checkout Pro
-#   MERCADOPAGO_PUBLIC_KEY     — public key do Mercado Pago
-# O deploy roda no runner self-hosted, na maquina que hospeda o cluster kind (contexto kind-autocenter).
+# Publica a imagem no GHCR (latest e SHA do commit) a cada push na main.
+# O deploy nos clusters kind fica no job deploy do ci.yml, que so roda depois do build e do Quality Gate.
 
 on:
   push:
     branches:
       - main
-
-env:
-  K8S_NAMESPACE: auto-center-billing
 
 jobs:
   docker-build-push:
@@ -57,60 +44,3 @@ jobs:
             .
           docker push "${IMAGE}:latest"
           docker push "${IMAGE}:${{ github.sha }}"
-
-  deploy:
-    name: 🚀 Deploy no Kubernetes (kind)
-    runs-on: self-hosted
-    concurrency:
-      group: deploy-autocenter-billing-service
-      cancel-in-progress: false
-    env:
-      KIND_CONTEXT: kind-autocenter
-      KIND_CLUSTER: autocenter
-      IMAGE_NAME: autocenter-billing-service
-
-    steps:
-      - name: Checkout do código
-        uses: actions/checkout@v4
-
-      - name: Garantir que o contexto kind existe
-        run: |
-          if ! kubectl config get-contexts -o name | grep -qx "${KIND_CONTEXT}"; then
-            echo "::error::Contexto ${KIND_CONTEXT} nao existe neste runner. Abortando antes de qualquer acao."
-            exit 1
-          fi
-
-      - name: Build da imagem (tag = SHA do commit)
-        run: docker build -f docker/Dockerfile -t "${IMAGE_NAME}:${{ github.sha }}" .
-
-      - name: Carregar a imagem no kind
-        run: kind load docker-image "${IMAGE_NAME}:${{ github.sha }}" --name "${KIND_CLUSTER}"
-
-      - name: Namespace e Secret do serviço
-        run: |
-          kubectl --context "${KIND_CONTEXT}" apply -f k8s/namespace.yaml
-          kubectl --context "${KIND_CONTEXT}" create secret generic billing-secrets \
-            --namespace="${K8S_NAMESPACE}" \
-            --from-literal=MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}" \
-            --from-literal=MYSQL_USER="${{ secrets.MYSQL_USER }}" \
-            --from-literal=MYSQL_PASSWORD="${{ secrets.MYSQL_PASSWORD }}" \
-            --from-literal=SPRING_DATASOURCE_URL="${{ secrets.SPRING_DATASOURCE_URL }}" \
-            --from-literal=SPRING_DATASOURCE_USERNAME="${{ secrets.MYSQL_USER }}" \
-            --from-literal=SPRING_DATASOURCE_PASSWORD="${{ secrets.MYSQL_PASSWORD }}" \
-            --from-literal=MERCADOPAGO_ACCESS_TOKEN="${{ secrets.MERCADOPAGO_ACCESS_TOKEN }}" \
-            --from-literal=MERCADOPAGO_PUBLIC_KEY="${{ secrets.MERCADOPAGO_PUBLIC_KEY }}" \
-            --from-literal=SISTEMA_SEGURANCA_CHAVE_SECRETA="${{ secrets.SISTEMA_SEGURANCA_CHAVE_SECRETA }}" \
-            --save-config --dry-run=client -o yaml | kubectl --context "${KIND_CONTEXT}" apply -f -
-
-      - name: Aplicar manifestos com a imagem do commit
-        run: |
-          rm -rf "${RUNNER_TEMP}/k8s"
-          cp -r k8s "${RUNNER_TEMP}/k8s"
-          printf '\nimages:\n  - name: %s\n    newTag: "%s"\n' \
-            "${IMAGE_NAME}" "${{ github.sha }}" >> "${RUNNER_TEMP}/k8s/kustomization.yaml"
-          kubectl --context "${KIND_CONTEXT}" apply -k "${RUNNER_TEMP}/k8s"
-
-      - name: Aguardar o rollout
-        run: |
-          kubectl --context "${KIND_CONTEXT}" -n "${K8S_NAMESPACE}" rollout status \
-            deployment/autocenter-billing-service --timeout=300s
