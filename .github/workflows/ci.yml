@@ -62,7 +62,7 @@ jobs:
           mvn -B --no-transfer-progress sonar:sonar \
             -Dsonar.host.url="${SONAR_HOST_URL:-https://sonarcloud.io}" \
             -Dsonar.token="${SONAR_TOKEN}" \
-            -Dsonar.qualitygate.wait=${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/homologacao' }}
+            -Dsonar.qualitygate.wait=${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/main' }}
 
       - name: Publicar relatório de testes (Surefire)
         if: always()
