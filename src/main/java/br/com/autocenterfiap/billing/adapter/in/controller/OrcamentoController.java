@@ -10,6 +10,7 @@ import br.com.autocenterfiap.billing.application.dto.PaginationRequest;
 import br.com.autocenterfiap.billing.application.usecase.AprovarOrcamentoUseCase;
 import br.com.autocenterfiap.billing.application.usecase.BuscarOrcamentoPorIdUseCase;
 import br.com.autocenterfiap.billing.application.usecase.BuscarTodosOrcamentosUseCase;
+import br.com.autocenterfiap.billing.application.usecase.EnviarOrcamentoUseCase;
 import br.com.autocenterfiap.billing.application.usecase.ReprovarOrcamentoUseCase;
 import br.com.autocenterfiap.billing.domain.enums.StatusOrcamento;
 import io.swagger.v3.oas.annotations.Operation;
@@ -40,17 +41,20 @@ public class OrcamentoController {
 	private final BuscarTodosOrcamentosUseCase buscarTodosOrcamentosUseCase;
 	private final AprovarOrcamentoUseCase aprovarOrcamentoUseCase;
 	private final ReprovarOrcamentoUseCase reprovarOrcamentoUseCase;
+	private final EnviarOrcamentoUseCase enviarOrcamentoUseCase;
 
 	public OrcamentoController(
 			BuscarOrcamentoPorIdUseCase buscarOrcamentoPorIdUseCase,
 			BuscarTodosOrcamentosUseCase buscarTodosOrcamentosUseCase,
 			AprovarOrcamentoUseCase aprovarOrcamentoUseCase,
-			ReprovarOrcamentoUseCase reprovarOrcamentoUseCase
+			ReprovarOrcamentoUseCase reprovarOrcamentoUseCase,
+			EnviarOrcamentoUseCase enviarOrcamentoUseCase
 	) {
 		this.buscarOrcamentoPorIdUseCase = buscarOrcamentoPorIdUseCase;
 		this.buscarTodosOrcamentosUseCase = buscarTodosOrcamentosUseCase;
 		this.aprovarOrcamentoUseCase = aprovarOrcamentoUseCase;
 		this.reprovarOrcamentoUseCase = reprovarOrcamentoUseCase;
+		this.enviarOrcamentoUseCase = enviarOrcamentoUseCase;
 	}
 
 	@Operation(
@@ -91,17 +95,15 @@ public class OrcamentoController {
 
 	@Operation(
 			summary = "Enviar orcamento",
-			description = "Envia o orcamento para o cliente"
+			description = "Envia o orcamento ao cliente (envio simulado) usando o e-mail ou telefone do Cadastro. "
+					+ "Cliente inexistente: 422. Cadastro indisponivel: 503."
 	)
 	@PostMapping("/{id}/enviar-cliente")
 	public ResponseEntity<String> enviarOrcamento(
 			@PathVariable Long id,
 			@Valid @RequestBody EnvioRequest envioRequest) {
 
-		String mensagem = String.format("Orçamento %d enviado via %s com sucesso!",
-				id, envioRequest.tipo().name());
-
-		return ResponseEntity.ok(mensagem);
+		return ResponseEntity.ok(enviarOrcamentoUseCase.executar(id, envioRequest.tipo()));
 	}
 
 	@Operation(

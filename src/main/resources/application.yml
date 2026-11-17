@@ -35,6 +35,10 @@ spring:
 server:
   port: ${SERVER_PORT:8099}
 
+# Cadastro Service (contato do cliente para envio do orcamento)
+cadastro:
+  url: ${CADASTRO_URL:http://localhost:8097}
+
 sistema:
   seguranca:
     chave:
