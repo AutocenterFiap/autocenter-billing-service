@@ -1,0 +1,201 @@
+{
+  "info": {
+    "name": "Auto Center FIAP - Billing Service",
+    "description": "Collection atualizada do microsservico de Orcamento e Pagamento (autocenter-billing-service).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8099" },
+    { "key": "jwtToken", "value": "" },
+    { "key": "orcamentoId", "value": "1" },
+    { "key": "pagamentoId", "value": "1" },
+    { "key": "osId", "value": "1001" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{jwtToken}}", "type": "string" }
+    ]
+  },
+  "item": [
+    {
+      "name": "Orcamentos",
+      "item": [
+        {
+          "name": "Listar orcamentos por status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/orcamentos?status=AGUARDANDO_APROVACAO&page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "orcamentos"],
+              "query": [
+                { "key": "status", "value": "AGUARDANDO_APROVACAO" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Buscar orcamento por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/v1/orcamentos/{{orcamentoId}}"
+          }
+        },
+        {
+          "name": "Buscar orcamentos por OS ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/v1/orcamentos/os/{{osId}}"
+          }
+        },
+        {
+          "name": "Enviar orcamento ao cliente (consulta Cadastro)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"EMAIL\"\n}"
+            },
+            "url": "{{baseUrl}}/v1/orcamentos/{{orcamentoId}}/enviar-cliente"
+          }
+        },
+        {
+          "name": "Aprovar orcamento",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{baseUrl}}/v1/orcamentos/{{orcamentoId}}/aprovar"
+          }
+        },
+        {
+          "name": "Reprovar orcamento",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"Cliente recusou o valor\"\n}"
+            },
+            "url": "{{baseUrl}}/v1/orcamentos/{{orcamentoId}}/reprovar"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Pagamentos",
+      "item": [
+        {
+          "name": "Gerar cobranca Checkout Pro",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"osId\": {{osId}},\n  \"orcamentoId\": {{orcamentoId}},\n  \"valorTotal\": 165.00,\n  \"tentativa\": 1,\n  \"validadeMinutos\": 30\n}"
+            },
+            "url": "{{baseUrl}}/v1/pagamentos"
+          }
+        },
+        {
+          "name": "Buscar pagamento por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/v1/pagamentos/{{pagamentoId}}"
+          }
+        },
+        {
+          "name": "Buscar pagamento mais recente por OS ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/v1/pagamentos/os/{{osId}}"
+          }
+        },
+        {
+          "name": "Confirmar pagamento manualmente",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/v1/pagamentos/{{pagamentoId}}/confirmar"
+          }
+        },
+        {
+          "name": "Recusar pagamento manualmente",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"Cartao recusado\"\n}"
+            },
+            "url": "{{baseUrl}}/v1/pagamentos/{{pagamentoId}}/recusar"
+          }
+        },
+        {
+          "name": "Estornar pagamento",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/pagamentos/{{pagamentoId}}/estornar?motivo=EXECUCAO_FALHOU",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "pagamentos", "{{pagamentoId}}", "estornar"],
+              "query": [{ "key": "motivo", "value": "EXECUCAO_FALHOU" }]
+            }
+          }
+        },
+        {
+          "name": "Webhook Mercado Pago (publico)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"payment\",\n  \"data\": {\n    \"id\": \"123456789\"\n  }\n}"
+            },
+            "url": "{{baseUrl}}/v1/pagamentos/webhook/mercadopago"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Observabilidade e Docs",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{baseUrl}}/actuator/health"
+          }
+        },
+        {
+          "name": "Metricas Prometheus",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{baseUrl}}/actuator/prometheus"
+          }
+        },
+        {
+          "name": "OpenAPI JSON",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{baseUrl}}/api-docs"
+          }
+        }
+      ]
+    }
+  ]
+}
+
