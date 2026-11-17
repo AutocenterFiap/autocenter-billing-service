@@ -4,6 +4,7 @@ import br.com.autocenterfiap.billing.domain.enums.TipoEnvio;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 
+@Schema(description = "Canal de envio do orçamento ao cliente")
 public record EnvioRequest(
 		@NotNull(message = "Tipo de envio é obrigatório")
 		@Schema(
