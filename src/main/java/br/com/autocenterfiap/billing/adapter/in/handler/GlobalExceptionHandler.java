@@ -1,5 +1,7 @@
 package br.com.autocenterfiap.billing.adapter.in.handler;
 
+import br.com.autocenterfiap.billing.application.exception.CadastroIndisponivelException;
+import br.com.autocenterfiap.billing.application.exception.ClienteNaoEncontradoException;
 import br.com.autocenterfiap.billing.application.exception.OrcamentoNaoEncontradoException;
 import br.com.autocenterfiap.billing.application.exception.PagamentoNaoEncontradoException;
 import org.springframework.http.HttpStatus;
@@ -14,6 +16,16 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler({OrcamentoNaoEncontradoException.class, PagamentoNaoEncontradoException.class})
 	public ResponseEntity<ErroResponse> naoEncontrado(RuntimeException ex) {
 		return build(HttpStatus.NOT_FOUND, ex.getMessage());
+	}
+
+	@ExceptionHandler(ClienteNaoEncontradoException.class)
+	public ResponseEntity<ErroResponse> clienteNaoEncontrado(ClienteNaoEncontradoException ex) {
+		return build(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
+	}
+
+	@ExceptionHandler(CadastroIndisponivelException.class)
+	public ResponseEntity<ErroResponse> cadastroIndisponivel(CadastroIndisponivelException ex) {
+		return build(HttpStatus.SERVICE_UNAVAILABLE, "Cadastro indisponivel; tente novamente em instantes");
 	}
 
 	@ExceptionHandler(IllegalArgumentException.class)

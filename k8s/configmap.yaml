@@ -13,6 +13,9 @@ data:
   # ─── Kafka (cluster de mensageria compartilhado do ecossistema) ──
   KAFKA_BOOTSTRAP_SERVERS: "kafka.autocenter.svc.cluster.local:9092"
 
+  # ─── Cadastro Service (outro namespace: usar o nome completo) ────
+  CADASTRO_URL: "http://cadastro-service.autocenter.svc.cluster.local:8097"
+
   # ─── Mercado Pago (Checkout Pro) ─────────────────────────────────
   MERCADOPAGO_MODO: "real"
   MERCADOPAGO_BASE_URL: "https://api.mercadopago.com"

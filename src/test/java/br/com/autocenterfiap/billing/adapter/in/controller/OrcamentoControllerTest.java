@@ -1,5 +1,9 @@
 package br.com.autocenterfiap.billing.adapter.in.controller;
 
+import br.com.autocenterfiap.billing.application.exception.CadastroIndisponivelException;
+import br.com.autocenterfiap.billing.application.exception.ClienteNaoEncontradoException;
+import br.com.autocenterfiap.billing.application.usecase.EnviarOrcamentoUseCase;
+import br.com.autocenterfiap.billing.domain.enums.TipoEnvio;
 import br.com.autocenterfiap.billing.adapter.in.handler.GlobalExceptionHandler;
 import br.com.autocenterfiap.billing.application.dto.OrcamentoOutput;
 import br.com.autocenterfiap.billing.application.dto.PageResult;
@@ -51,6 +55,9 @@ class OrcamentoControllerTest {
 	@MockBean
 	private ReprovarOrcamentoUseCase reprovarUseCase;
 
+	@MockBean
+	private EnviarOrcamentoUseCase enviarUseCase;
+
 	@Test
 	void deveAprovarReprovarEnviarBuscarEListarOrcamentos() throws Exception {
 		OrcamentoOutput aprovado = OrcamentoOutput.builder()
@@ -82,11 +89,12 @@ class OrcamentoControllerTest {
 				.andExpect(jsonPath("$.statusOrcamento").value("REPROVADO"))
 				.andExpect(jsonPath("$.motivo").value("Muito caro"));
 
+		when(enviarUseCase.executar(501L, TipoEnvio.EMAIL)).thenReturn("Orçamento 501 enviado via EMAIL para joao@email.com");
 		mockMvc.perform(post("/v1/orcamentos/501/enviar-cliente")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("{\"tipo\":\"EMAIL\"}"))
 				.andExpect(status().isOk())
-				.andExpect(content().string("Orçamento 501 enviado via EMAIL com sucesso!"));
+				.andExpect(content().string("Orçamento 501 enviado via EMAIL para joao@email.com"));
 
 		when(buscarPorIdUseCase.executar(501L)).thenReturn(aprovado);
 		mockMvc.perform(get("/v1/orcamentos/501"))
@@ -119,5 +127,28 @@ class OrcamentoControllerTest {
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.status").value(400));
 	}
-}
 
+	@Test
+	void enviarComCadastroForaRetorna503() throws Exception {
+		when(enviarUseCase.executar(501L, TipoEnvio.EMAIL))
+				.thenThrow(new CadastroIndisponivelException("fora", new RuntimeException()));
+
+		mockMvc.perform(post("/v1/orcamentos/501/enviar-cliente")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"tipo\":\"EMAIL\"}"))
+				.andExpect(status().isServiceUnavailable())
+				.andExpect(jsonPath("$.status").value(503));
+	}
+
+	@Test
+	void enviarComClienteInexistenteRetorna422() throws Exception {
+		when(enviarUseCase.executar(501L, TipoEnvio.WHATSAPP))
+				.thenThrow(new ClienteNaoEncontradoException(1L));
+
+		mockMvc.perform(post("/v1/orcamentos/501/enviar-cliente")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"tipo\":\"WHATSAPP\"}"))
+				.andExpect(status().isUnprocessableEntity())
+				.andExpect(jsonPath("$.status").value(422));
+	}
+}

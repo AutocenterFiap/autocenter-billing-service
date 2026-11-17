@@ -15,6 +15,8 @@ import br.com.autocenterfiap.billing.application.usecase.GerarCobrancaUseCase;
 import br.com.autocenterfiap.billing.application.usecase.GerarOrcamentoUseCase;
 import br.com.autocenterfiap.billing.application.usecase.ProcessarPagamentoUseCase;
 import br.com.autocenterfiap.billing.application.usecase.ReprovarOrcamentoUseCase;
+import br.com.autocenterfiap.billing.application.port.out.ClientePort;
+import br.com.autocenterfiap.billing.application.usecase.EnviarOrcamentoUseCase;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -36,6 +38,12 @@ public class UseCaseConfig {
 			CriarOrcamentoUseCase criarOrcamentoUseCase,
 			BillingEventPublisherPort publisher) {
 		return new GerarOrcamentoUseCase(orcamentoRepositoryPort, criarOrcamentoUseCase, publisher);
+	}
+
+	@Bean
+	public EnviarOrcamentoUseCase enviarOrcamentoUseCase(OrcamentoRepositoryPort orcamentoRepositoryPort,
+	                                                     ClientePort clientePort) {
+		return new EnviarOrcamentoUseCase(orcamentoRepositoryPort, clientePort);
 	}
 
 	@Bean
