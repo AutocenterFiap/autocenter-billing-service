@@ -264,6 +264,7 @@ Todas as mensagens usam `osId` como chave de partição e o envelope padrão (`E
 - **Métricas Prometheus:** `/actuator/prometheus` (coletado via annotations OpenMetrics do Datadog no `k8s/app-deployment.yaml`).
 - **Logs JSON + Rastreamento:** `logback-spring.xml` com `logstash-logback-encoder` e `correlationId` injetado via MDC nos consumers e requisições.
 - **APM Datadog:** `dd-java-agent.jar` embutido no `docker/Dockerfile` (`-javaagent:/app/dd-java-agent.jar`).
+- **Dashboards Datadog:** os dashboards de monitoramento estão versionados em [`/docs`](./docs/), contendo arquivos `.json` importáveis diretamente na plataforma Datadog.
 
 ---
 
