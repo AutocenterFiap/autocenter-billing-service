@@ -81,6 +81,9 @@ springdoc:
 # Actuator (Health & Prometheus)
 # ========================================
 management:
+  metrics:
+    enable:
+      kafka: false
   endpoints:
     web:
       exposure:
